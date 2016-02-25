@@ -1,0 +1,40 @@
+{
+  "title": "Auth0 Authentication API webhooks",
+  "name": "auth0-authentication-api-webhooks",
+  "version": "1.0.0",
+  "author": "auth0",
+  "description": "Allows you to define webhooks for Auth0's Authentication API. It will go through the audit logs and call a webhook for specific events.",
+  "type": "cron",
+  "logoUrl": "https://cdn.auth0.com/extensions/auth0-authentication-api-webhooks/assets/logo.png",
+  "keywords": [
+    "auth0",
+    "extension"
+  ],
+  "schedule": "0 */5 * * * *",
+  "secrets": {
+    "AUTH0_DOMAIN": {
+      "description": "Auth0 domain"
+    },
+    "AUTH0_GLOBAL_CLIENT_ID": {
+      "description": "Auth0 global ClientID"
+    },
+    "AUTH0_GLOBAL_CLIENT_SECRET": {
+      "description": "Auth0 global ClientSecret"
+    },
+    "WEBHOOK_URL":     {
+      "required": true
+    },
+    "WEBHOOK_CONCURRENT_CALLS":     {
+      "description": "The maximum concurrent calls that will be made to your webhook",
+      "default": 5
+    },
+    "LOG_LEVEL":     {
+      "description": "This allows you to specify the log level of events that need to be sent",
+      "example": "e.g.: 1 for Debug messages, 2 for Info messages, etc"
+    },
+    "LOG_TYPES":     {
+      "description": "If you only want to send events with a specific type (eg: failed logins)",
+      "example": "e.g.: 's' for Success Login, 'du' for Deleted User, etc"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "auth0-authentication-api-webhooks",
+  "version": "1.0.0",
+  "description": "Allows you to define webhooks for Auth0's Authentication API. It will go through the audit logs and call a webhook for specific events.",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/auth0/auth0-authentication-api-webhooks.git"
+  },
+  "keywords": [
+    "auth0",
+    "extension"
+  ],
+  "author": "sandrino@auth0.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/auth0/auth0-authentication-api-webhooks/issues"
+  },
+  "homepage": "https://github.com/auth0/auth0-authentication-api-webhooks#readme",
+  "dependencies": {
+    "async": "^1.0.0",
+    "auth0": "^0.8.2",
+    "express": "^4.12.4",
+    "superagent": "^1.2.0",
+    "webtask-tools": "^1.3.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.5.1",
+    "babel-loader": "^6.2.2",
+    "babel-preset-es2015": "^6.5.0",
+    "babel-preset-react": "^6.5.0",
+    "lodash": "^4.3.0",
+    "sync-request": "^3.0.0",
+    "webpack": "^1.12.13"
+  }
+}

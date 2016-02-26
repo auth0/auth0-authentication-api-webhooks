@@ -1,5 +1,7 @@
 # Auth0 Authentication API webhooks
 
+[![Auth0 Extensions](http://cdn.auth0.com/extensions/assets/badge.svg)](https://sandbox.it.auth0.com/api/run/auth0-extensions/extensions-badge?webtask_no_cache=1)
+
 *Auth0 Authentication API webhooks* allows you to define webhooks for Auth0's Authentication API. It will go through the audit logs and call a webhook for specific events. This can address use cases like:
 
 > I want to be notified each time a user is blocked

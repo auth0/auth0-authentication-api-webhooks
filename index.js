@@ -334,9 +334,6 @@ function getLogsFromAuth0(domain, token, take, from, cb) {
     getPageOfLogsFromAuth0(domain, token, pageTake, from, function(err, logs) {
       if (err) {
         iteratorCb(err)
-      } else if (logs.length === 0) {
-        take = 0;
-        iteratorCb();
       } else {
         accumulator = accumulator.concat(logs);
         if (pageTake === logs.length) {

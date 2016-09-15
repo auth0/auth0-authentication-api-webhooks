@@ -29,11 +29,9 @@ function lastLogCheckpoint(req, res) {
 
           let take = Number.parseInt(ctx.data.BATCH_SIZE);
 
-          take = take > 100 ? 100 : take;
-
           context.logs = context.logs || [];
 
-          getLogsFromAuth0(req.webtaskContext.data.AUTH0_DOMAIN, req.access_token, take, context.checkpointId, (logs, err) => {
+          getLogsFromAuth0(req.webtaskContext.data.AUTH0_DOMAIN, req.access_token, take, context.checkpointId, (err, logs) => {
             if (err) {
               console.log('Error getting logs from Auth0', err);
               return callback(err);
@@ -300,7 +298,7 @@ const logTypes = {
   }
 };
 
-function getLogsFromAuth0 (domain, token, take, from, cb) {
+function getPageOfLogsFromAuth0 (domain, token, take, from, cb) {
   var url = `https://${domain}/api/v2/logs`;
 
   Request
@@ -314,14 +312,48 @@ function getLogsFromAuth0 (domain, token, take, from, cb) {
     .end(function (err, res) {
       if (err || !res.ok) {
         console.log('Error getting logs', err);
-        cb(null, err);
+        cb(err);
       } else {
         console.log('x-ratelimit-limit: ', res.headers['x-ratelimit-limit']);
         console.log('x-ratelimit-remaining: ', res.headers['x-ratelimit-remaining']);
         console.log('x-ratelimit-reset: ', res.headers['x-ratelimit-reset']);
-        cb(res.body);
+        cb(null, res.body);
       }
     });
+}
+
+function getLogsFromAuth0(domain, token, take, from, cb) {
+  var accumulator = [];
+
+  var test = function() {
+    return take > 0;
+  };
+
+  var iterator = function(iteratorCb) {
+    var pageTake = take > 100 ? 100 : take;
+    getPageOfLogsFromAuth0(domain, token, pageTake, from, function(err, logs) {
+      if (err) {
+        iteratorCb(err)
+      } else {
+        accumulator = accumulator.concat(logs);
+        if (pageTake === logs.length) {
+          take -= logs.length;
+          from = logs[logs.length - 1]._id
+        } else {
+          take = 0
+        }
+        iteratorCb();
+      }
+    });
+  };
+
+  async.whilst(test, iterator, function(err) {
+    if (err) {
+      cb(err);
+    } else {
+      cb(null, accumulator);
+    }
+  });
 }
 
 const getTokenCached = memoizer({

@@ -47,13 +47,12 @@ module.exports =
 
 	'use strict';
 
-	var request = __webpack_require__(1);
-	var async = __webpack_require__(2);
-	var express = __webpack_require__(3);
-	var Webtask = __webpack_require__(4);
+	var async = __webpack_require__(1);
+	var express = __webpack_require__(2);
+	var Webtask = __webpack_require__(3);
 	var app = express();
-	var Request = __webpack_require__(1);
-	var memoizer = __webpack_require__(7);
+	var Request = __webpack_require__(5);
+	var memoizer = __webpack_require__(6);
 
 	function lastLogCheckpoint(req, res) {
 	  var ctx = req.webtaskContext;
@@ -131,13 +130,18 @@ module.exports =
 	      console.log('Sending to \'' + url + '\' with ' + concurrent_calls + ' concurrent calls.');
 
 	      async.eachLimit(context.logs, concurrent_calls, function (log, cb) {
-	        request.post(url).send(log).set('Content-Type', 'application/json').end(function (err, res) {
+	        Request({
+	          method: 'POST',
+	          url: url,
+	          json: true,
+	          body: log
+	        }, function (err, res, body) {
 	          if (err) {
 	            console.log('Error sending request:', err);
 	            return cb(err);
 	          }
 
-	          if (!res.ok) {
+	          if (res.statusCode.toString().indexOf('2') !== 0) {
 	            console.log('Unexpected response while sending request:', JSON.stringify(res.body));
 	            return cb(new Error('Unexpected response from webhook.'));
 	          }
@@ -194,8 +198,16 @@ module.exports =
 	    event: 'Success Exchange',
 	    level: 1 // Info
 	  },
+	  'seccft': {
+	    event: 'Success Exchange (Client Credentials)',
+	    level: 1 // Info
+	  },
 	  'feacft': {
 	    event: 'Failed Exchange',
+	    level: 3 // Error
+	  },
+	  'feccft': {
+	    event: 'Failed Exchange (Client Credentials)',
 	    level: 3 // Error
 	  },
 	  'f': {
@@ -339,21 +351,60 @@ module.exports =
 	  'fdu': {
 	    event: 'Failed User Deletion',
 	    level: 3 // Error
+	  },
+	  'fapi': {
+	    event: 'Failed API Operation',
+	    level: 3 // Error
+	  },
+	  'limit_wc': {
+	    event: 'Blocked Account',
+	    level: 3 // Error
+	  },
+	  'limit_mu': {
+	    event: 'Blocked IP Address',
+	    level: 3 // Error
+	  },
+	  'slo': {
+	    event: 'Success Logout',
+	    level: 1 // Info
+	  },
+	  'flo': {
+	    event: ' Failed Logout',
+	    level: 3 // Error
+	  },
+	  'sd': {
+	    event: 'Success Delegation',
+	    level: 1 // Info
+	  },
+	  'fd': {
+	    event: 'Failed Delegation',
+	    level: 3 // Error
 	  }
 	};
 
 	function getPageOfLogsFromAuth0(domain, token, take, from, cb) {
 	  var url = 'https://' + domain + '/api/v2/logs';
 
-	  Request.get(url).set('Authorization', 'Bearer ' + token).set('Accept', 'application/json').query({ take: take }).query({ from: from }).query({ sort: 'date:1' }).query({ per_page: take }).end(function (err, res) {
-	    if (err || !res.ok) {
+	  Request({
+	    method: 'GET',
+	    url: url,
+	    json: true,
+	    qs: {
+	      take: take,
+	      from: from,
+	      sort: 'date:1',
+	      per_page: take
+	    },
+	    headers: {
+	      Authorization: 'Bearer ' + token,
+	      Accept: 'application/json'
+	    }
+	  }, function (err, res, body) {
+	    if (err) {
 	      console.log('Error getting logs', err);
 	      cb(err);
 	    } else {
-	      console.log('x-ratelimit-limit: ', res.headers['x-ratelimit-limit']);
-	      console.log('x-ratelimit-remaining: ', res.headers['x-ratelimit-remaining']);
-	      console.log('x-ratelimit-reset: ', res.headers['x-ratelimit-reset']);
-	      cb(null, res.body);
+	      cb(null, body);
 	    }
 	  });
 	}
@@ -394,16 +445,21 @@ module.exports =
 
 	var getTokenCached = memoizer({
 	  load: function load(apiUrl, audience, clientId, clientSecret, cb) {
-	    Request.post(apiUrl).send({
-	      audience: audience,
-	      grant_type: 'client_credentials',
-	      client_id: clientId,
-	      client_secret: clientSecret
-	    }).type('application/json').end(function (err, res) {
-	      if (err || !res.ok) {
+	    Request({
+	      method: 'POST',
+	      url: apiUrl,
+	      json: true,
+	      body: {
+	        audience: audience,
+	        grant_type: 'client_credentials',
+	        client_id: clientId,
+	        client_secret: clientSecret
+	      }
+	    }, function (err, res, body) {
+	      if (err) {
 	        cb(null, err);
 	      } else {
-	        cb(res.body.access_token);
+	        cb(body.access_token);
 	      }
 	    });
 	  },
@@ -440,22 +496,16 @@ module.exports =
 /* 1 */
 /***/ function(module, exports) {
 
-	module.exports = require("superagent");
+	module.exports = require("async");
 
 /***/ },
 /* 2 */
 /***/ function(module, exports) {
 
-	module.exports = require("async");
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
 	module.exports = require("express");
 
 /***/ },
-/* 4 */
+/* 3 */
 /***/ function(module, exports, __webpack_require__) {
 
 	exports.fromConnect = exports.fromExpress = fromConnect;
@@ -535,7 +585,7 @@ module.exports =
 
 
 	    function readNotAvailable(path, options, cb) {
-	        var Boom = __webpack_require__(5);
+	        var Boom = __webpack_require__(4);
 
 	        if (typeof options === 'function') {
 	            cb = options;
@@ -546,8 +596,8 @@ module.exports =
 	    }
 
 	    function readFromPath(path, options, cb) {
-	        var Boom = __webpack_require__(5);
-	        var Request = __webpack_require__(6);
+	        var Boom = __webpack_require__(4);
+	        var Request = __webpack_require__(5);
 
 	        if (typeof options === 'function') {
 	            cb = options;
@@ -570,7 +620,7 @@ module.exports =
 	    }
 
 	    function writeNotAvailable(path, data, options, cb) {
-	        var Boom = __webpack_require__(5);
+	        var Boom = __webpack_require__(4);
 
 	        if (typeof options === 'function') {
 	            cb = options;
@@ -581,8 +631,8 @@ module.exports =
 	    }
 
 	    function writeToPath(path, data, options, cb) {
-	        var Boom = __webpack_require__(5);
-	        var Request = __webpack_require__(6);
+	        var Boom = __webpack_require__(4);
+	        var Request = __webpack_require__(5);
 
 	        if (typeof options === 'function') {
 	            cb = options;
@@ -606,23 +656,23 @@ module.exports =
 
 
 /***/ },
-/* 5 */
+/* 4 */
 /***/ function(module, exports) {
 
 	module.exports = require("boom");
 
 /***/ },
-/* 6 */
+/* 5 */
 /***/ function(module, exports) {
 
 	module.exports = require("request");
 
 /***/ },
-/* 7 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate) {const LRU = __webpack_require__(10);
-	const _ = __webpack_require__(11);
+	/* WEBPACK VAR INJECTION */(function(setImmediate) {const LRU = __webpack_require__(9);
+	const _ = __webpack_require__(10);
 	const lru_params =  [ 'max', 'maxAge', 'length', 'dispose', 'stale' ];
 
 	module.exports = function (options) {
@@ -696,13 +746,13 @@ module.exports =
 
 	  return result;
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).setImmediate))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).setImmediate))
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(9).nextTick;
+	/* WEBPACK VAR INJECTION */(function(setImmediate, clearImmediate) {var nextTick = __webpack_require__(8).nextTick;
 	var apply = Function.prototype.apply;
 	var slice = Array.prototype.slice;
 	var immediateIds = {};
@@ -778,10 +828,10 @@ module.exports =
 	exports.clearImmediate = typeof clearImmediate === "function" ? clearImmediate : function(id) {
 	  delete immediateIds[id];
 	};
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).setImmediate, __webpack_require__(8).clearImmediate))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7).setImmediate, __webpack_require__(7).clearImmediate))
 
 /***/ },
-/* 9 */
+/* 8 */
 /***/ function(module, exports) {
 
 	// shim for using process in browser
@@ -878,13 +928,13 @@ module.exports =
 
 
 /***/ },
-/* 10 */
+/* 9 */
 /***/ function(module, exports) {
 
 	module.exports = require("lru-cache");
 
 /***/ },
-/* 11 */
+/* 10 */
 /***/ function(module, exports) {
 
 	module.exports = require("lodash");

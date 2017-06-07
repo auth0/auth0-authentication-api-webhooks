@@ -1,9 +1,10 @@
-const async    = require('async');
+﻿const async    = require('async');
 const express  = require('express');
 const Webtask  = require('webtask-tools');
 const app      = express();
 const Request  = require('request');
 const memoizer = require('lru-memoizer');
+const NestedError = require('nested-error-stacks');
 
 function lastLogCheckpoint(req, res) {
   let ctx               = req.webtaskContext;
@@ -33,7 +34,7 @@ function lastLogCheckpoint(req, res) {
           getLogsFromAuth0(req.webtaskContext.data.AUTH0_DOMAIN, req.access_token, take, context.checkpointId, (err, logs) => {
             if (err) {
               console.log('Error getting logs from Auth0', err);
-              return callback(err);
+              return callback(new NestedError('Error getting logs from Auth0.', err));
             }
 
             if (logs && logs.length) {
@@ -55,7 +56,7 @@ function lastLogCheckpoint(req, res) {
             return logTypes[log.type].level >= min_log_level;
           }
           return true;
-        }
+        };
 
         const types_filter = (ctx.data.LOG_TYPES && ctx.data.LOG_TYPES.split(',')) || [];
         const log_matches_types = (log) => {
@@ -89,12 +90,12 @@ function lastLogCheckpoint(req, res) {
           }, (err, res, body) => {
             if (err) {
               console.log('Error sending request:', err);
-              return cb(err);
+              return cb(new NestedError('Error sending request to webhook.',err));
             }
 
             if (res.statusCode.toString().indexOf('2') !== 0) {
               console.log('Unexpected response while sending request:', JSON.stringify(res.body));
-              return cb(new Error('Unexpected response from webhook.'));
+              return cb(new Error('Unexpected response from webhook: ' + res.statusCode + " - " + JSON.stringify(res.body)));
             }
 
             cb();
@@ -115,7 +116,7 @@ function lastLogCheckpoint(req, res) {
         return req.webtaskContext.storage.set({checkpointId: startCheckpointId}, {force: 1}, (error) => {
           if (error) {
             console.log('Error storing startCheckpoint', error);
-            return res.status(500).send({error: error});
+            return res.status(500).send({ error: new NestedError('Error storing startCheckpoint.', error)});
           }
 
           res.status(500).send({
@@ -132,7 +133,7 @@ function lastLogCheckpoint(req, res) {
       }, {force: 1}, (error) => {
         if (error) {
           console.log('Error storing checkpoint', error);
-          return res.status(500).send({error: error});
+          return res.status(500).send({ error: new NestedError('Error storing checkpoint', error)});
         }
 
         res.sendStatus(200);
@@ -281,9 +282,6 @@ const logTypes = {
   'sapi': {
     event: 'API Operation'
   },
-  'fapi': {
-    event: 'Failed API Operation'
-  },
   'limit_wc': {
     event: 'Blocked Account',
     level: 4 // Critical
@@ -306,10 +304,6 @@ const logTypes = {
   },
   'fapi': {
     event: 'Failed API Operation',
-    level: 3 // Error
-  },
-  'limit_wc': {
-    event: 'Blocked Account',
     level: 3 // Error
   },
   'limit_mu': {
@@ -354,7 +348,7 @@ function getPageOfLogsFromAuth0 (domain, token, take, from, cb) {
   }, (err, res, body) => {
     if (err) {
       console.log('Error getting logs', err);
-      cb(err);
+      cb(new NestedError('Error getting logs.', err));
     } else {
       cb(null, body);
     }
@@ -372,14 +366,14 @@ function getLogsFromAuth0(domain, token, take, from, cb) {
     var pageTake = take > 100 ? 100 : take;
     getPageOfLogsFromAuth0(domain, token, pageTake, from, function(err, logs) {
       if (err) {
-        iteratorCb(err)
+        iteratorCb(err);
       } else {
         accumulator = accumulator.concat(logs);
         if (pageTake === logs.length) {
           take -= logs.length;
-          from = logs[logs.length - 1]._id
+          from = logs[logs.length - 1]._id;
         } else {
-          take = 0
+          take = 0;
         }
         iteratorCb();
       }
@@ -429,7 +423,7 @@ app.use(function (req, res, next) {
   getTokenCached(apiUrl, audience, clientId, clientSecret, function (access_token, err) {
     if (err) {
       console.log('Error getting access_token', err);
-      return next(err);
+      return next(new NestedError('Error getting access_token.', err));
     }
 
     req.access_token = access_token;

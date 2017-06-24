@@ -79,7 +79,7 @@ function lastLogCheckpoint(req, res) {
         const url              = ctx.data.WEBHOOK_URL;
         const concurrent_calls = ctx.data.WEBHOOK_CONCURRENT_CALLS || 5;
 
-        console.log(`Sending to '${url}' with ${concurrent_calls} concurrent calls.`);
+        console.log(`Sending ${context.logs.length} matches to '${url}' with ${concurrent_calls} concurrent calls.`);
 
         async.eachLimit(context.logs, concurrent_calls, (log, cb) => {
           Request({

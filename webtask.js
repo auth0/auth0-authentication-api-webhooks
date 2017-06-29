@@ -5,7 +5,7 @@ const config = require('./server/lib/config');
 const logger = require('./server/lib/logger');
 
 const createServer = tools.createServer((config, storage) => {
-  logger.info('Starting Management API Webhooks extension - Version:', process.env.CLIENT_VERSION);
+  logger.info('Starting Authentication API Webhooks extension - Version:', process.env.CLIENT_VERSION);
   return expressApp(config, storage);
 });
 

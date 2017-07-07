@@ -16,31 +16,41 @@ module.exports = (storage) =>
       return next();
     }
 
+    const url = config('WEBHOOK_URL');
+    const batchMode = config('SEND_AS_BATCH') === true || config('SEND_AS_BATCH') === 'true';
+    const concurrentCalls = parseInt(config('WEBHOOK_CONCURRENT_CALLS'), 10) || 5;
+
+    const sendRequest = (data, callback) =>
+      Request({
+        method: 'POST',
+        url: url,
+        json: true,
+        body: data
+      }, (err, res, body) => {
+        if (err || res.statusCode < 200 || res.statusCode >= 400) {
+          return callback(err || body || res.statusCode);
+        }
+
+        return callback();
+      });
+
+    const callWebhook = (logs, callback) => {
+      if (batchMode) {
+        return sendRequest(logs, callback);
+      }
+
+      return async.eachLimit(logs, concurrentCalls, sendRequest, callback);
+    };
+
     const onLogsReceived = (logs, callback) => {
       if (!logs || !logs.length) {
         return callback();
       }
 
-      const url = config('WEBHOOK_URL');
-      const concurrentCalls = parseInt(config('WEBHOOK_CONCURRENT_CALLS'), 10) || 5;
-
       logger.info(`${logs.length} logs found.`);
       logger.info(`Sending to '${url}' with ${concurrentCalls} concurrent calls.`);
 
-      async.eachLimit(logs, concurrentCalls, (log, cb) => {
-        Request({
-          method: 'POST',
-          url: url,
-          json: true,
-          body: log
-        }, (err, res, body) => {
-          if (err || res.statusCode < 200 || res.statusCode >= 400) {
-            return cb(err || body || res.statusCode);
-          }
-
-          cb();
-        });
-      }, callback);
+      callWebhook(logs, callback);
     };
 
     const slack = new loggingTools.reporters.SlackReporter({
@@ -65,6 +75,8 @@ module.exports = (storage) =>
 
     if (!options.logTypes || !options.logTypes.length) {
       options.logTypes = Object.keys(loggingTools.logTypes).filter(type => type !== 'sapi' && type !== 'fapi');
+    } else if (!Array.isArray(options.logTypes)) {
+      options.logTypes = options.logTypes.replace(/\s/g, '').split(',');
     }
 
     const auth0logger = new loggingTools.LogsProcessor(storage, options);

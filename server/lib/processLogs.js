@@ -66,7 +66,8 @@ module.exports = (storage) =>
       batchSize: parseInt(config('BATCH_SIZE')),
       startFrom: config('START_FROM'),
       logLevel: config('LOG_LEVEL'),
-      logTypes: config('LOG_TYPES')
+      logTypes: config('LOG_TYPES'),
+      serversideFiltering: config('AUTH0_RTA').replace('https://', '') === 'auth0.auth0.com'
     };
 
     if (!options.batchSize || options.batchSize > 100) {

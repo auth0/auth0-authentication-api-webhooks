@@ -36,9 +36,11 @@ module.exports = storage =>
 
     const callWebhook = (logs, callback) => {
       if (batchMode) {
+        logger.info(`Sending to '${url}'.`);
         return sendRequest(logs, callback);
       }
 
+      logger.info(`Sending to '${url}' with ${concurrentCalls} concurrent calls.`);
       return async.eachLimit(logs, concurrentCalls, sendRequest, callback);
     };
 
@@ -48,7 +50,6 @@ module.exports = storage =>
       }
 
       logger.info(`${logs.length} logs found.`);
-      logger.info(`Sending to '${url}' with ${concurrentCalls} concurrent calls.`);
 
       return callWebhook(logs, callback);
     };

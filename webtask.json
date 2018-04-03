@@ -5,6 +5,7 @@
   "author": "auth0",
   "description": "Allows you to define webhooks for Auth0's Authentication API. It will go through the audit logs and call a webhook for specific events.",
   "type": "cron",
+  "initialUrlPath": "/login",
   "logoUrl": "https://cdn.auth0.com/extensions/auth0-authentication-api-webhooks/assets/logo.png",
   "keywords": [
     "auth0",
@@ -12,27 +13,277 @@
   ],
   "schedule": "0 */5 * * * *",
   "auth0": {
-    "scopes": "read:logs"
+    "createClient": true,
+    "onUninstallPath": "/.extensions/on-uninstall",
+    "scopes": "read:logs delete:clients"
   },
   "secrets": {
     "BATCH_SIZE": {
-      "description": "The ammount of logs to be read on each execution. Maximun is 100.",
+      "description": "The amount of logs to be read on each execution. Maximum is 100.",
       "default": 100
     },
-    "WEBHOOK_URL":     {
+    "WEBHOOK_URL": {
       "required": true
+    },
+    "SEND_AS_BATCH": {
+      "description": "If enabled, extension will send entire batch in one request. Otherwise, it will send requests one by one.",
+      "options": [
+        {
+          "value": "false",
+          "text": "Disabled"
+        },
+        {
+          "value": "true",
+          "text": "Enabled"
+        }]
     },
     "WEBHOOK_CONCURRENT_CALLS":     {
       "description": "The maximum concurrent calls that will be made to your webhook",
       "default": 5
     },
-    "LOG_LEVEL":     {
-      "description": "This allows you to specify the log level of events that need to be sent",
-      "example": "e.g.: 1 for Debug messages, 2 for Info messages, etc"
+    "START_FROM": {
+      "description": "Checkpoint ID of log to start from."
     },
-    "LOG_TYPES":     {
+    "SLACK_INCOMING_WEBHOOK_URL": {
+      "description": "Slack Incoming Webhook URL used to report statistics and possible failures"
+    },
+    "SLACK_SEND_SUCCESS": {
+      "description": "This setting will enable verbose notifications to Slack which are useful for troubleshooting",
+      "type": "select",
+      "allowMultiple": false,
+      "default": "false",
+      "options": [
+        {
+          "value": "false",
+          "text": "No"
+        },
+        {
+          "value": "true",
+          "text": "Yes"
+        }
+      ]
+    },
+    "LOG_LEVEL": {
+      "description": "This allows you to specify the log level of events that need to be sent",
+      "type": "select",
+      "allowMultiple": true,
+      "options": [
+        {
+          "value": "-",
+          "text": ""
+        },
+        {
+          "value": "0",
+          "text": "Debug"
+        },
+        {
+          "value": "1",
+          "text": "Info"
+        },
+        {
+          "value": "2",
+          "text": "Warning"
+        },
+        {
+          "value": "3",
+          "text": "Error"
+        },
+        {
+          "value": "4",
+          "text": "Critical"
+        }
+      ]
+    },
+    "LOG_TYPES": {
       "description": "If you only want to send events with a specific type (eg: failed logins)",
-      "example": "e.g.: 's' for Success Login, 'du' for Deleted User, etc"
+      "type": "select",
+      "allowMultiple": true,
+      "options": [
+        {
+          "text": "",
+          "value": "-"
+        },
+        {
+          "text": "Success Login",
+          "value": "s"
+        },
+        {
+          "text": "Success Exchange",
+          "value": "seacft"
+        },
+        {
+          "text": "Success Exchange (Client Credentials)",
+          "value": "seccft"
+        },
+        {
+          "text": "Failed Exchange",
+          "value": "feacft"
+        },
+        {
+          "text": "Failed Exchange (Client Credentials)",
+          "value": "feccft"
+        },
+        {
+          "text": "Failed Login",
+          "value": "f"
+        },
+        {
+          "text": "Warnings During Login",
+          "value": "w"
+        },
+        {
+          "text": "Deleted User",
+          "value": "du"
+        },
+        {
+          "text": "Failed Login (invalid email/username)",
+          "value": "fu"
+        },
+        {
+          "text": "Failed Login (wrong password)",
+          "value": "fp"
+        },
+        {
+          "text": "Failed by Connector",
+          "value": "fc"
+        },
+        {
+          "text": "Failed by CORS",
+          "value": "fco"
+        },
+        {
+          "text": "Connector Online",
+          "value": "con"
+        },
+        {
+          "text": "Connector Offline",
+          "value": "coff"
+        },
+        {
+          "text": "Failed Connector Provisioning",
+          "value": "fcpro"
+        },
+        {
+          "text": "Success Signup",
+          "value": "ss"
+        },
+        {
+          "text": "Failed Signup",
+          "value": "fs"
+        },
+        {
+          "text": "Code Sent",
+          "value": "cs"
+        },
+        {
+          "text": "Code/Link Sent",
+          "value": "cls"
+        },
+        {
+          "text": "Success Verification Email",
+          "value": "sv"
+        },
+        {
+          "text": "Failed Verification Email",
+          "value": "fv"
+        },
+        {
+          "text": "Success Change Password",
+          "value": "scp"
+        },
+        {
+          "text": "Failed Change Password",
+          "value": "fcp"
+        },
+        {
+          "text": "Success Change Email",
+          "value": "sce"
+        },
+        {
+          "text": "Failed Change Email",
+          "value": "fce"
+        },
+        {
+          "text": "Success Change Username",
+          "value": "scu"
+        },
+        {
+          "text": "Failed Change Username",
+          "value": "fcu"
+        },
+        {
+          "text": "Success Change Phone Number",
+          "value": "scpn"
+        },
+        {
+          "text": "Failed Change Phone Number",
+          "value": "fcpn"
+        },
+        {
+          "text": "Success Verification Email Request",
+          "value": "svr"
+        },
+        {
+          "text": "Failed Verification Email Request",
+          "value": "fvr"
+        },
+        {
+          "text": "Success Change Password Request",
+          "value": "scpr"
+        },
+        {
+          "text": "Failed Change Password Request",
+          "value": "fcpr"
+        },
+        {
+          "text": "Failed Sending Notification",
+          "value": "fn"
+        },
+        {
+          "text": "Blocked Account",
+          "value": "limit_wc"
+        },
+        {
+          "text": "Too Many Calls to /userinfo",
+          "value": "limit_ui"
+        },
+        {
+          "text": "Rate Limit On API",
+          "value": "api_limit"
+        },
+        {
+          "text": "Successful User Deletion",
+          "value": "sdu"
+        },
+        {
+          "text": "Failed User Deletion",
+          "value": "fdu"
+        },
+        {
+          "text": "Blocked Account",
+          "value": "limit_wc"
+        },
+        {
+          "text": "Blocked IP Address",
+          "value": "limit_mu"
+        },
+        {
+          "text": "Success Logout",
+          "value": "slo"
+        },
+        {
+          "text": "Failed Logout",
+          "value": "flo"
+        },
+        {
+          "text": "Success Delegation",
+          "value": "sd"
+        },
+        {
+          "text": "Failed Delegation",
+          "value": "fd"
+        }
+      ]
     }
   }
 }

@@ -9,7 +9,7 @@
   "category": "log_export",
   "repository": "https://github.com/auth0/auth0-authentication-api-webhooks",
   "docsUrl": "https://auth0.com/docs/extensions/authentication-api-webhooks",
-  "logoUrl": "https://cdn.auth0.com/extensions/auth0-authentication-api-webhooks/assets/logo.png",
+  "logoUrl": "https://cdn.auth0.com/extensions/auth0-authentication-api-webhooks/assets/logo.svg",
   "keywords": [
     "auth0",
     "extension"

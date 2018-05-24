@@ -7,7 +7,7 @@
     "build": "npm run clean && npm run client:build && npm run extension:build",
     "clean": "rimraf dist",
     "client:build": "npm run clean && cross-env NODE_ENV=production webpack --config ./build/webpack/config.prod.js --colors -p",
-    "extension:build": "a0-ext build:server ./webtask.js ./dist && cp ./dist/auth0-authentication-api-webhooks.extension.$npm_package_version.js ./build/bundle.js",
+    "extension:build": "npm run log-types && a0-ext build:server ./webtask.js ./dist && cp ./dist/auth0-authentication-api-webhooks.extension.$npm_package_version.js ./build/bundle.js",
     "lint:js": "eslint --ignore-path .gitignore --ignore-pattern build --ignore-pattern webpack .",
     "serve:dev": "cross-env NODE_ENV=development gulp run --gulpfile ./build/gulpfile.js",
     "serve:prod": "cross-env NODE_ENV=production node index.js",
@@ -15,7 +15,8 @@
     "test": "npm run test:pre && cross-env NODE_ENV=test mocha ./tests/mocha.js ./tests/**/*.tests.js",
     "test:watch": "npm run test:pre && cross-env NODE_ENV=test mocha ./tests/mocha.js ./tests/**/*.tests.js --watch",
     "test:pre": "npm run test:clean",
-    "test:clean": "rimraf ./coverage && rimraf ./.nyc_output"
+    "test:clean": "rimraf ./coverage && rimraf ./.nyc_output",
+    "log-types": "node ./getLogTypes.js"
   },
   "repository": {
     "type": "git",
@@ -123,7 +124,7 @@
     "winston": "^2.2.0"
   },
   "devDependencies": {
-    "auth0-extensions-cli": "^1.0.5",
+    "auth0-extensions-cli": "^1.0.8",
     "autoprefixer": "^6.3.6",
     "babel-eslint": "^7.0.0",
     "babel-loader": "^6.2.4",

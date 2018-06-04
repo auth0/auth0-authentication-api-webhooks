@@ -57,6 +57,9 @@
     "START_FROM": {
       "description": "Checkpoint ID of log to start from."
     },
+    "MAX_RUN_TIME_SECONDS": {
+      "description": "Max time allowed for each run (in seconds)."
+    },
     "SLACK_INCOMING_WEBHOOK_URL": {
       "description": "Slack Incoming Webhook URL used to report statistics and possible failures"
     },

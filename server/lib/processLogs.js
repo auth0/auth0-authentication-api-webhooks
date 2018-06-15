@@ -6,6 +6,9 @@ const loggingTools = require('auth0-log-extension-tools');
 const config = require('./config');
 const logger = require('./logger');
 
+const MS_PER_S = 1000;
+const NS_PER_MS = 1000000;
+
 module.exports = storage =>
   (req, res, next) => {
     const wtBody = (req.webtaskContext && req.webtaskContext.body) || req.body || {};
@@ -37,13 +40,24 @@ module.exports = storage =>
       });
 
     const callWebhook = (logs, callback) => {
+      const startTime = process.hrtime();
+
+      const requestFinished = (err) => {
+        const elapsedTime = process.hrtime(startTime);
+        const elapsedMillis = elapsedTime[0] * MS_PER_S + elapsedTime[1] / NS_PER_MS;
+        
+        logger.info(`Finished request to '${url}' in ${elapsedMillis}ms.`);
+
+        callback(err);
+      };
+
       if (batchMode) {
         logger.info(`Sending to '${url}'.`);
-        return sendRequest(logs, callback);
+        return sendRequest(logs, requestFinished);
       }
 
       logger.info(`Sending to '${url}' with ${concurrentCalls} concurrent calls.`);
-      return async.eachLimit(logs, concurrentCalls, sendRequest, callback);
+      return async.eachLimit(logs, concurrentCalls, sendRequest, requestFinished);
     };
 
     const onLogsReceived = (logs, callback) => {
@@ -69,7 +83,8 @@ module.exports = storage =>
       batchSize: parseInt(config('BATCH_SIZE'), 10),
       startFrom: config('START_FROM'),
       logLevel: config('LOG_LEVEL'),
-      logTypes: config('LOG_TYPES')
+      logTypes: config('LOG_TYPES'),
+      logger
     };
 
     if (!options.batchSize || options.batchSize > 100) {
